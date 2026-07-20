@@ -61,6 +61,10 @@ let themes = {
 // Current combo count
 let combo = 0;
 let isPowermodeActive = false;
+// Tracks the last chat preset we force-applied, so changing the `preset` dropdown in
+// the Settings UI re-applies the preset's per-key values exactly once (guards the
+// write-loop applyPreset would otherwise cause).
+let lastAppliedChatPreset;
 const syncChatRenderer = (context) => (0, chat_renderer_installer_1.syncRendererFromConfiguration)(context)
     .catch((error) => {
     const message = error && error.message ? error.message : String(error);
@@ -114,7 +118,7 @@ function activate(context) {
     context.subscriptions.push(vscode.commands.registerCommand(chatEnableCommand, () => setChatEnabled(true)));
     context.subscriptions.push(vscode.commands.registerCommand(chatDisableCommand, () => setChatEnabled(false)));
     context.subscriptions.push(vscode.commands.registerCommand(chatOpenSettingsCommand, () => (0, chat_renderer_installer_1.openChatSettings)()));
-    context.subscriptions.push(vscode.commands.registerCommand(chatApplyPresetCommand, () => (0, chat_renderer_installer_1.applyPreset)(context, "juicy-subtle-v1").then(() => syncChatRenderer(context)).then(() => { var _a; return (_a = chatSidebarProvider) === null || _a === void 0 ? void 0 : _a.refresh(); })));
+    context.subscriptions.push(vscode.commands.registerCommand(chatApplyPresetCommand, () => { lastAppliedChatPreset = "juicy-subtle-v1"; return (0, chat_renderer_installer_1.applyPreset)(context, "juicy-subtle-v1").then(() => syncChatRenderer(context)).then(() => { var _a; return (_a = chatSidebarProvider) === null || _a === void 0 ? void 0 : _a.refresh(); }); }));
     context.subscriptions.push(vscode.commands.registerCommand("vscodeJuicer.chat.setParticleSize", () => setChatNumericSetting("particleSizePx", [2, 3, 4, 5, 6, 8], "Set VSCode Juicer Particle Size")));
     context.subscriptions.push(vscode.commands.registerCommand("vscodeJuicer.chat.setParticleDensity", () => setChatNumericSetting("particlesPerKeystroke", [2, 3, 4, 5, 6, 8, 10], "Set VSCode Juicer Particle Count Per Keystroke")));
     context.subscriptions.push(vscode.commands.registerCommand("vscodeJuicer.chat.resetStats", async () => {
@@ -179,6 +183,7 @@ function activate(context) {
         },
         applyPreset: async (presetName) => {
             const nextPreset = typeof presetName === "string" && presetName ? presetName : "juicy-subtle-v1";
+            lastAppliedChatPreset = nextPreset;
             await (0, chat_renderer_installer_1.applyPreset)(context, nextPreset);
             await syncChatRenderer(context);
         },
@@ -194,11 +199,24 @@ function activate(context) {
     typingStatsListenerDisposer = vscode.workspace.onDidChangeTextDocument(onDidTrackTypingStatsDocument);
     // Subscribe to configuration changes
     context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(onDidChangeConfiguration));
-    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration((event) => {
+    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(async (event) => {
         if (!event.affectsConfiguration("vscodeJuicer.chat")) {
             return;
         }
-        syncChatRenderer(context);
+        // When the `preset` dropdown itself changes, re-apply the preset so its
+        // per-key values overwrite any previously-written explicit values. Without
+        // this the enum is inert once a preset has ever been applied (the explicit
+        // per-key values always win in resolveRuntime).
+        if (event.affectsConfiguration("vscodeJuicer.chat.preset")) {
+            const presetName = vscode.workspace
+                .getConfiguration("vscodeJuicer.chat")
+                .get("preset", "juicy-subtle-v1");
+            if (presetName !== lastAppliedChatPreset) {
+                lastAppliedChatPreset = presetName;
+                await (0, chat_renderer_installer_1.applyPreset)(context, presetName);
+            }
+        }
+        await syncChatRenderer(context);
         chatSidebarProvider === null || chatSidebarProvider === void 0 ? void 0 : chatSidebarProvider.refresh();
     }));
     // Initialize from the current configuration

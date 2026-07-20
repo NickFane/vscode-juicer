@@ -85,22 +85,28 @@
   }
 
   function startLiveConfigPolling() {
-    const configPath = window.__vscodeJuicerConfigPath;
-    if (!configPath) return;
+    // NOTE: the workbench renderer is sandboxed — there is NO Node `require('fs')`
+    // here (the old transport silently no-op'd, so preset changes only applied after
+    // a reload). Instead we fetch the live-config file the extension writes next to
+    // workbench.html, using a URL relative to the workbench document.
+    const configUrl = window.__vscodeJuicerConfigUrl;
+    if (!configUrl) return;
     let lastContent = '';
-    setInterval(() => {
+    async function poll() {
       try {
-        // eslint-disable-next-line no-undef
-        const fs = require('fs');
-        const content = fs.readFileSync(configPath, 'utf8');
-        if (content !== lastContent) {
+        const res = await fetch(configUrl, { cache: 'no-store' });
+        if (!res || !res.ok) return;
+        const content = await res.text();
+        if (content && content !== lastContent) {
           lastContent = content;
           applyLiveConfig(JSON.parse(content));
         }
       } catch (_e) {
-        // fs unavailable or file missing — silently ignore
+        // fetch blocked or file missing — the inline snapshot still applies; ignore
       }
-    }, 500);
+    }
+    setInterval(poll, 500);
+    poll();
   }
 
   let combo = 0;
