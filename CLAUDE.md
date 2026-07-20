@@ -28,6 +28,9 @@ other webview inputs (delivered by patching the workbench HTML).
   (presets, strip/inject, merge). All logic lives here to stay testable. → [docs/testing.md](docs/testing.md)
 - **Sidebar** — `out/src/chat-settings-view.js` (webview host) + `out/src/chat-settings-fields.js`
   (pure field/category descriptors + step-button math). → [docs/sidebar-ui.md](docs/sidebar-ui.md)
+- **Composer (prototype)** — `renderer/effects-core.js` (host-agnostic effects) +
+  `out/src/juicer-composer-view.js`: non-patching alternative using
+  `workbench.action.chat.open`. Not merged; exploratory. → [docs/composer.md](docs/composer.md)
 
 ## Global rules (enforce on every task)
 - **Workbench injection is single-source & marker-managed** — always strip the old

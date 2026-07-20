@@ -20,6 +20,9 @@
     { "topic": "local install/update flow", "dest": "docs/llm-update-guide.md", "sentinel": "--install-extension" },
     { "topic": "marketplace deferred + split path", "dest": "docs/marketplace.md", "sentinel": "cannot be made marketplace-safe" },
     { "topic": "sidebar is data-driven from FIELDS/CATEGORIES", "dest": "docs/sidebar-ui.md", "sentinel": "webview itself builds all DOM at load" },
-    { "topic": "step ladder is derived per-field, not fixed", "dest": "docs/sidebar-ui.md", "sentinel": "derived per-field from its active range" }
+    { "topic": "step ladder is derived per-field, not fixed", "dest": "docs/sidebar-ui.md", "sentinel": "derived per-field from its active range" },
+    { "topic": "workbench.action.chat.open enables non-patching forwarding", "dest": "docs/composer.md", "sentinel": "isPartialQuery" },
+    { "topic": "effects-core is host-agnostic, no anchor-guessing needed", "dest": "docs/composer.md", "sentinel": "no CSS-selector matching needed" },
+    { "topic": "injector unification deferred to a follow-up", "dest": "docs/composer.md", "sentinel": "deferred follow-up" }
   ]
 }

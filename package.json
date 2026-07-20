@@ -100,6 +100,11 @@
 					"id": "vscode-juicer-settings",
 					"name": "Juicer Controls",
 					"type": "webview"
+				},
+				{
+					"id": "vscode-juicer-composer",
+					"name": "Composer (Prototype)",
+					"type": "webview"
 				}
 			]
 		},
