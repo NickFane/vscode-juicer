@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - name: Validate & test
+        run: npm test
+      - name: Docs audit
+        run: npm run docs-audit
+      - name: Package VSIX
+        run: mkdir -p dist && npx @vscode/vsce package -o dist/
+      - name: Create GitHub Release with the VSIX
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/*.vsix \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes

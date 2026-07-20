@@ -33,7 +33,7 @@
 		"test:watch": "vitest",
 		"docs-audit": "node --experimental-strip-types scripts/docs-audit.mts",
 		"pretest": "npm run validate:bundle",
-		"package": "vsce package -o dist/",
+		"package": "mkdir -p dist && vsce package -o dist/",
 		"prepare": "git config core.hooksPath .githooks || true"
 	},
 	"devDependencies": {
