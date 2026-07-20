@@ -1,6 +1,7 @@
 "use strict";
 
 const vscode = require("vscode");
+const { CATEGORIES, FIELDS } = require("./chat-settings-fields");
 
 class ChatSettingsViewProvider {
   constructor(context, handlers) {
@@ -64,6 +65,9 @@ class ChatSettingsViewProvider {
   }
 
   getHtmlContent() {
+    const categoriesJson = JSON.stringify(CATEGORIES);
+    const fieldsJson = JSON.stringify(FIELDS);
+
     return `<!DOCTYPE html>
 <html>
 <head>
@@ -75,6 +79,7 @@ class ChatSettingsViewProvider {
       --panel-2: color-mix(in srgb, var(--vscode-sideBar-background) 92%, black 4%);
       --accent: var(--vscode-focusBorder);
       --muted: var(--vscode-descriptionForeground);
+      --danger: var(--vscode-terminal-ansiRed, #ff6b6b);
     }
     body {
       margin: 0;
@@ -159,6 +164,9 @@ class ChatSettingsViewProvider {
       justify-content: space-between;
       gap: 8px;
     }
+    .row-inline.dangerous {
+      color: var(--danger);
+    }
     input[type="range"], select, button {
       width: 100%;
     }
@@ -186,6 +194,41 @@ class ChatSettingsViewProvider {
       background: var(--panel-2);
       color: var(--vscode-foreground);
     }
+    .stepper-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .stepper-group {
+      display: flex;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+    .stepper-group button {
+      width: auto;
+      padding: 2px 6px;
+      font-size: 10px;
+      line-height: 1.4;
+    }
+    .field-label {
+      flex: 1;
+      text-align: center;
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .field-value {
+      color: var(--vscode-foreground);
+      font-weight: 700;
+    }
+    .array-preview {
+      color: var(--muted);
+      font-size: 11px;
+      word-break: break-word;
+    }
   </style>
 </head>
 <body>
@@ -205,69 +248,7 @@ class ChatSettingsViewProvider {
     </div>
   </div>
 
-  <details open>
-    <summary>Renderer Core</summary>
-    <div class="section">
-      <div class="row-inline">
-        <div>Enable effects</div>
-        <input id="enabled" type="checkbox" />
-      </div>
-      <div class="row">
-        <label for="preset">Preset</label>
-        <select id="preset">
-          <option value="juicy-subtle-v1">juicy-subtle-v1</option>
-          <option value="legacy">legacy</option>
-          <option value="insanity">insanity</option>
-        </select>
-      </div>
-      <div class="btn-row">
-        <button id="applyPreset">Apply Preset</button>
-        <button id="applyInsanity">Go Insanity</button>
-        <button id="openSettings" class="secondary">Open Full Settings</button>
-      </div>
-    </div>
-  </details>
-
-  <details>
-    <summary>Particles</summary>
-    <div class="section">
-      <div class="row">
-        <label for="particleSize">Particle Size <span id="particleSizeValue"></span></label>
-        <input id="particleSize" type="range" min="1" max="120" step="1" />
-      </div>
-      <div class="row">
-        <label for="particlesPerKey">Particles / Key <span id="particlesPerKeyValue"></span></label>
-        <input id="particlesPerKey" type="range" min="1" max="300" step="1" />
-      </div>
-      <div class="row">
-        <label for="particleLifetime">Particle Lifetime ms <span id="particleLifetimeValue"></span></label>
-        <input id="particleLifetime" type="range" min="40" max="6000" step="10" />
-      </div>
-    </div>
-  </details>
-
-  <details>
-    <summary>Shake + Combo</summary>
-    <div class="section">
-      <div class="row-inline">
-        <div>Shake enabled</div>
-        <input id="shakeEnabled" type="checkbox" />
-      </div>
-      <div class="row">
-        <label for="shakeDuration">Shake Duration ms <span id="shakeDurationValue"></span></label>
-        <input id="shakeDuration" type="range" min="1" max="2400" step="1" />
-      </div>
-      <div class="row">
-        <label for="shakeDistance">Shake Distance px <span id="shakeDistanceValue"></span></label>
-        <input id="shakeDistance" type="range" min="1" max="120" step="1" />
-      </div>
-      <div class="row">
-        <label for="comboThreshold">Combo Shake Threshold <span id="comboThresholdValue"></span></label>
-        <input id="comboThreshold" type="range" min="1" max="300" step="1" />
-      </div>
-      <div id="safetyHint" class="hint"></div>
-    </div>
-  </details>
+  <div id="categories"></div>
 
   <details>
     <summary>Stats</summary>
@@ -282,94 +263,255 @@ class ChatSettingsViewProvider {
 
   <script>
     const vscode = acquireVsCodeApi();
+    const CATEGORIES = ${categoriesJson};
+    const FIELDS = ${fieldsJson};
 
-    const controls = {
-      enabled: document.getElementById('enabled'),
-      preset: document.getElementById('preset'),
-      particleSize: document.getElementById('particleSize'),
-      particlesPerKey: document.getElementById('particlesPerKey'),
-      particleLifetime: document.getElementById('particleLifetime'),
-      shakeEnabled: document.getElementById('shakeEnabled'),
-      shakeDuration: document.getElementById('shakeDuration'),
-      shakeDistance: document.getElementById('shakeDistance'),
-      comboThreshold: document.getElementById('comboThreshold'),
-    };
-
-    const labels = {
-      particleSize: document.getElementById('particleSizeValue'),
-      particlesPerKey: document.getElementById('particlesPerKeyValue'),
-      particleLifetime: document.getElementById('particleLifetimeValue'),
-      shakeDuration: document.getElementById('shakeDurationValue'),
-      shakeDistance: document.getElementById('shakeDistanceValue'),
-      comboThreshold: document.getElementById('comboThresholdValue'),
-    };
+    // Duplicated verbatim from out/src/chat-settings-fields.js (the webview has no
+    // module system, same constraint as renderer/vscode-juicer-injector.js) - keep
+    // both copies in sync if the step-math formula changes.
+    function niceStep(raw) {
+      if (raw <= 1) return 1;
+      const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+      const norm = raw / pow;
+      let niceNorm;
+      if (norm < 1.5) niceNorm = 1;
+      else if (norm < 3) niceNorm = 2;
+      else if (norm < 7) niceNorm = 5;
+      else niceNorm = 10;
+      return Math.max(1, Math.round(niceNorm * pow));
+    }
+    function deriveSteps(min, max) {
+      const range = Math.max(1, max - min);
+      const base = niceStep(range * 0.01);
+      return { base, ladder: [base, base * 2, base * 4] };
+    }
+    function clampValue(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
 
     function send(command, payload = {}) {
       vscode.postMessage({ command, ...payload });
     }
 
-    function applyRangeProfile(preset) {
-      const insanity = preset === 'insanity';
-      const safetyHint = document.getElementById('safetyHint');
+    function activeMax(field, presetName) {
+      return presetName === 'insanity' && field.insanityMax !== undefined ? field.insanityMax : field.max;
+    }
 
-      if (insanity) {
-        controls.particleSize.max = '200';
-        controls.particlesPerKey.max = '500';
-        controls.particleLifetime.max = '10000';
-        controls.shakeDuration.max = '4000';
-        controls.shakeDistance.max = '220';
-        controls.comboThreshold.max = '500';
-        safetyHint.textContent = 'Safety protocols disengaged: extreme ranges unlocked.';
-      } else {
-        controls.particleSize.max = '120';
-        controls.particlesPerKey.max = '300';
-        controls.particleLifetime.max = '6000';
-        controls.shakeDuration.max = '2400';
-        controls.shakeDistance.max = '120';
-        controls.comboThreshold.max = '300';
-        safetyHint.textContent = 'Normal limits active.';
+    // key -> { el, valueEl?, steppersEl? } for every rendered field.
+    const fieldEls = {};
+
+    function buildNumberRow(field) {
+      const row = document.createElement('div');
+      row.className = 'row';
+
+      const stepperRow = document.createElement('div');
+      stepperRow.className = 'stepper-row';
+
+      const left = document.createElement('div');
+      left.className = 'stepper-group';
+      const right = document.createElement('div');
+      right.className = 'stepper-group';
+
+      const label = document.createElement('div');
+      label.className = 'field-label';
+      label.innerHTML = field.label + ' <span class="field-value"></span>';
+
+      stepperRow.append(left, label, right);
+
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.min = String(field.min);
+      slider.step = '1';
+
+      row.append(stepperRow, slider);
+
+      const valueEl = label.querySelector('.field-value');
+
+      function currentPresetName() {
+        const presetField = fieldEls.preset;
+        return presetField && presetField.el ? presetField.el.value : 'juicy-subtle-v1';
       }
+
+      function setValue(next, notify) {
+        const max = activeMax(field, currentPresetName());
+        const clamped = clampValue(Math.round(next), field.min, max);
+        slider.value = String(clamped);
+        valueEl.textContent = String(clamped);
+        if (notify) {
+          send('setConfig', { key: field.key, value: clamped });
+        }
+      }
+
+      function rebuildSteppers() {
+        const max = activeMax(field, currentPresetName());
+        slider.max = String(max);
+        const { ladder } = deriveSteps(field.min, max);
+        left.innerHTML = '';
+        right.innerHTML = '';
+        // Left reads largest-to-smallest magnitude outward-in: -4 -2 -1 | slider | +1 +2 +4
+        [...ladder].reverse().forEach((delta) => {
+          const btn = document.createElement('button');
+          btn.className = 'secondary';
+          btn.textContent = '-' + delta;
+          btn.addEventListener('click', () => setValue(Number(slider.value) - delta, true));
+          left.appendChild(btn);
+        });
+        ladder.forEach((delta) => {
+          const btn = document.createElement('button');
+          btn.className = 'secondary';
+          btn.textContent = '+' + delta;
+          btn.addEventListener('click', () => setValue(Number(slider.value) + delta, true));
+          right.appendChild(btn);
+        });
+      }
+
+      slider.addEventListener('input', () => {
+        valueEl.textContent = slider.value;
+      });
+      slider.addEventListener('change', () => {
+        send('setConfig', { key: field.key, value: Number(slider.value) });
+      });
+
+      fieldEls[field.key] = { el: slider, valueEl, rebuildSteppers, setValue };
+      return row;
     }
 
-    function bindRange(id, settingKey) {
-      controls[id].addEventListener('input', () => {
-        labels[id].textContent = controls[id].value;
+    function buildBooleanRow(field) {
+      const row = document.createElement('div');
+      row.className = 'row-inline' + (field.dangerous ? ' dangerous' : '');
+
+      const label = document.createElement('div');
+      label.textContent = field.label;
+
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.addEventListener('change', () => {
+        send('setConfig', { key: field.key, value: input.checked });
       });
-      controls[id].addEventListener('change', () => {
-        send('setConfig', { key: settingKey, value: Number(controls[id].value) });
+
+      row.append(label, input);
+      fieldEls[field.key] = { el: input };
+
+      if (field.hint) {
+        const wrap = document.createElement('div');
+        const hint = document.createElement('div');
+        hint.className = 'hint';
+        hint.textContent = field.hint;
+        wrap.append(row, hint);
+        return wrap;
+      }
+      return row;
+    }
+
+    function buildEnumRow(field) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      const label = document.createElement('label');
+      label.textContent = field.label;
+      const select = document.createElement('select');
+      field.options.forEach((opt) => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        select.appendChild(option);
+      });
+      select.addEventListener('change', () => {
+        if (field.key === 'preset') {
+          applyPresetRangeSwitch();
+          send('applyPreset', { preset: select.value });
+        } else {
+          send('setConfig', { key: field.key, value: select.value });
+        }
+      });
+      row.append(label, select);
+      fieldEls[field.key] = { el: select };
+      return row;
+    }
+
+    function buildArrayReadonlyRow(field) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      const label = document.createElement('div');
+      label.className = 'field-label';
+      label.style.textAlign = 'left';
+      label.textContent = field.label;
+      const preview = document.createElement('div');
+      preview.className = 'array-preview';
+      row.append(label, preview);
+      fieldEls[field.key] = { previewEl: preview };
+      return row;
+    }
+
+    function buildFieldRow(field) {
+      if (field.type === 'number') return buildNumberRow(field);
+      if (field.type === 'boolean') return buildBooleanRow(field);
+      if (field.type === 'enum') return buildEnumRow(field);
+      if (field.type === 'array-readonly') return buildArrayReadonlyRow(field);
+      return document.createElement('div');
+    }
+
+    function applyPresetRangeSwitch() {
+      Object.keys(fieldEls).forEach((key) => {
+        const entry = fieldEls[key];
+        if (entry.rebuildSteppers) {
+          const oldValue = Number(entry.el.value);
+          entry.rebuildSteppers();
+          entry.setValue(oldValue, false);
+        }
       });
     }
 
-    controls.enabled.addEventListener('change', () => {
-      send('setEnabled', { value: controls.enabled.checked });
-    });
+    function renderCategories() {
+      const root = document.getElementById('categories');
+      CATEGORIES.forEach((category) => {
+        const fields = FIELDS.filter((f) => f.category === category.id);
+        if (fields.length === 0) return;
 
-    controls.preset.addEventListener('change', () => {
-      applyRangeProfile(controls.preset.value);
-      send('applyPreset', { preset: controls.preset.value });
-    });
+        const details = document.createElement('details');
+        if (category.id === 'core') details.open = true;
+        const summary = document.createElement('summary');
+        summary.textContent = category.title;
+        const section = document.createElement('div');
+        section.className = 'section';
 
-    bindRange('particleSize', 'particleSizePx');
-    bindRange('particlesPerKey', 'particlesPerKeystroke');
-    bindRange('particleLifetime', 'particleLifetimeMs');
-    bindRange('shakeDuration', 'shakeDurationMs');
-    bindRange('shakeDistance', 'shakeDistancePx');
-    bindRange('comboThreshold', 'comboShakeThreshold');
+        fields.forEach((field) => section.appendChild(buildFieldRow(field)));
 
-    controls.shakeEnabled.addEventListener('change', () => {
-      send('setConfig', { key: 'shakeEnabled', value: controls.shakeEnabled.checked });
-    });
+        if (category.id === 'core') {
+          const btnRow = document.createElement('div');
+          btnRow.className = 'btn-row';
+          const applyBtn = document.createElement('button');
+          applyBtn.textContent = 'Apply Preset';
+          applyBtn.addEventListener('click', () => {
+            applyPresetRangeSwitch();
+            send('applyPreset', { preset: fieldEls.preset.el.value });
+          });
+          const insanityBtn = document.createElement('button');
+          insanityBtn.textContent = 'Go Insanity';
+          insanityBtn.addEventListener('click', () => {
+            fieldEls.preset.el.value = 'insanity';
+            applyPresetRangeSwitch();
+            send('applyPreset', { preset: 'insanity' });
+          });
+          const settingsBtn = document.createElement('button');
+          settingsBtn.className = 'secondary';
+          settingsBtn.textContent = 'Open Full Settings';
+          settingsBtn.addEventListener('click', () => send('openSettings'));
+          btnRow.append(applyBtn, insanityBtn, settingsBtn);
+          section.appendChild(btnRow);
+        }
 
-    document.getElementById('applyPreset').addEventListener('click', () => {
-      applyRangeProfile(controls.preset.value);
-      send('applyPreset', { preset: controls.preset.value });
-    });
-    document.getElementById('applyInsanity').addEventListener('click', () => {
-      controls.preset.value = 'insanity';
-      applyRangeProfile('insanity');
-      send('applyPreset', { preset: 'insanity' });
-    });
-    document.getElementById('openSettings').addEventListener('click', () => send('openSettings'));
+        if (category.id === 'input') {
+          const hint = document.createElement('div');
+          hint.className = 'hint';
+          hint.textContent = 'Arrays are edited via Open Full Settings above.';
+          section.appendChild(hint);
+        }
+
+        details.append(summary, section);
+        root.appendChild(details);
+      });
+    }
+
     document.getElementById('resetStats').addEventListener('click', () => send('resetStats'));
 
     function render(state) {
@@ -377,24 +519,23 @@ class ChatSettingsViewProvider {
       const stats = state.stats;
 
       document.getElementById('statusPill').textContent = settings.enabled ? 'ON' : 'OFF';
-      controls.enabled.checked = settings.enabled;
-      controls.preset.value = settings.preset;
-      applyRangeProfile(settings.preset);
 
-      controls.particleSize.value = settings.particleSizePx;
-      controls.particlesPerKey.value = settings.particlesPerKeystroke;
-      controls.particleLifetime.value = settings.particleLifetimeMs;
-      controls.shakeEnabled.checked = settings.shakeEnabled;
-      controls.shakeDuration.value = settings.shakeDurationMs;
-      controls.shakeDistance.value = settings.shakeDistancePx;
-      controls.comboThreshold.value = settings.comboShakeThreshold;
+      FIELDS.forEach((field) => {
+        const entry = fieldEls[field.key];
+        if (!entry) return;
+        const value = settings[field.key];
 
-      labels.particleSize.textContent = settings.particleSizePx;
-      labels.particlesPerKey.textContent = settings.particlesPerKeystroke;
-      labels.particleLifetime.textContent = settings.particleLifetimeMs;
-      labels.shakeDuration.textContent = settings.shakeDurationMs;
-      labels.shakeDistance.textContent = settings.shakeDistancePx;
-      labels.comboThreshold.textContent = settings.comboShakeThreshold;
+        if (field.type === 'number') {
+          entry.rebuildSteppers();
+          entry.setValue(value, false);
+        } else if (field.type === 'boolean') {
+          entry.el.checked = Boolean(value);
+        } else if (field.type === 'enum') {
+          entry.el.value = value;
+        } else if (field.type === 'array-readonly') {
+          entry.previewEl.textContent = Array.isArray(value) ? value.join(', ') : String(value);
+        }
+      });
 
       document.getElementById('comboValue').textContent = stats.combo;
       document.getElementById('wpmValue').textContent = stats.wpm;
@@ -410,6 +551,7 @@ class ChatSettingsViewProvider {
       }
     });
 
+    renderCategories();
     send('ready');
     setInterval(() => send('ready'), 700);
   </script>

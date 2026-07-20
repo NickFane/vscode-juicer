@@ -15,6 +15,7 @@ const combo_plugin_1 = require("./combo/combo-plugin");
 const configuration_migrator_1 = require("./config/configuration-migrator");
 const chat_renderer_installer_1 = require("./chat-renderer-installer");
 const chat_settings_view_1 = require("./chat-settings-view");
+const chat_config_1 = require("./chat-config");
 // Config values
 let enabled = false;
 let comboThreshold;
@@ -153,18 +154,13 @@ function activate(context) {
     chatSidebarProvider = new chat_settings_view_1(context, {
         getState: () => {
             const cfg = vscode.workspace.getConfiguration("vscodeJuicer.chat");
+            const presetName = cfg.get("preset", "juicy-subtle-v1");
+            // resolveRuntime (chat-config.js) is the single source of truth for the
+            // full settings shape - every RUNTIME_KEYS entry is exposed automatically,
+            // so a new setting needs no edit here to reach the sidebar.
+            const runtime = (0, chat_config_1.resolveRuntime)(presetName, (key, fallback) => cfg.get(key, fallback));
             return {
-                settings: {
-                    enabled: cfg.get("enabled", true),
-                    preset: cfg.get("preset", "juicy-subtle-v1"),
-                    particleSizePx: cfg.get("particleSizePx", 4),
-                    particlesPerKeystroke: cfg.get("particlesPerKeystroke", 5),
-                    particleLifetimeMs: cfg.get("particleLifetimeMs", 260),
-                    shakeEnabled: cfg.get("shakeEnabled", true),
-                    shakeDurationMs: cfg.get("shakeDurationMs", 34),
-                    shakeDistancePx: cfg.get("shakeDistancePx", 1),
-                    comboShakeThreshold: cfg.get("comboShakeThreshold", 15),
-                },
+                settings: Object.assign({ enabled: cfg.get("enabled", true), preset: presetName }, runtime),
                 stats: {
                     combo: statsCombo,
                     wpm: lastWpm,
