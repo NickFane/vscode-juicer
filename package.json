@@ -31,7 +31,7 @@
 		"validate:bundle": "node --check ./out/src/extension.js && node --check ./renderer/vscode-juicer-injector.js",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"docs-audit": "node --experimental-strip-types scripts/docs-audit.ts",
+		"docs-audit": "node --experimental-strip-types scripts/docs-audit.mts",
 		"pretest": "npm run validate:bundle",
 		"package": "vsce package -o dist/",
 		"prepare": "git config core.hooksPath .githooks || true"

@@ -50,10 +50,33 @@ The extension patches workbench HTML directly and injects renderer code + config
 
 Use the preset command to quickly jump between the tuned baseline and the over-the-top profile.
 
+## Install / update from a release
+
+Distribution is via **GitHub Releases** (not the VS Code Marketplace — see
+`docs/marketplace.md`). Grab the latest `.vsix` from the Releases page (or run
+`scripts/update-local.sh`), then:
+
+```sh
+code --install-extension vscode-juicer-<ver>.vsix --force
+```
+
+Full operator steps: `docs/llm-update-guide.md`.
+
 ## Validation
 
-Run `npm run validate:bundle` to syntax-check both layers.
+```sh
+npm run validate:bundle   # syntax-check both layers
+npm test                  # Vitest unit suite
+npm run docs-audit        # docs-system guard
+```
 
-## Next implementation slice
+## Development & docs
 
-Chat renderer configuration lives under `vscodeJuicer.chat.*` and is bridged into the injected renderer runtime automatically.
+This repo uses a progressive-disclosure documentation system for LLM-assisted work.
+Start at `CLAUDE.md` (the always-loaded router) and load the one `docs/*.md` slice
+your task matches (index: `docs/INDEX.md`).
+
+## Credits
+
+Editor-side effects descend from [vscode-power-mode](https://github.com/hoovercj/vscode-power-mode)
+by Cody Hoover (MIT). See `LICENSE`.

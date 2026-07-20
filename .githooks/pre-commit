@@ -1,0 +1,5 @@
+#!/bin/sh
+# Guards the LLM-optimized docs system before every commit.
+# Uses Node's native TS type-stripping so no deps are required.
+# Bypass with: git commit --no-verify
+node --experimental-strip-types scripts/docs-audit.mts || exit 1

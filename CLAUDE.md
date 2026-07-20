@@ -1,165 +1,65 @@
-# VSCode Juicer Handoff
+# VSCode Juicer
 
-## Purpose
+A standalone VS Code extension that adds gamification "juice" to typing: editor-side
+combo/shake/explosion effects **plus** renderer-side effects for Copilot Chat and
+other webview inputs (delivered by patching the workbench HTML).
 
-This repository is the new source of truth for the VS Code extension formerly hacked on locally as a Power Mode chat fork.
+> **Doctrine lives in `docs/` — load a slice on demand, not all at once.** This file
+> is the always-in-context router: universal rules + a map of where each subsystem's
+> detail lives. When a task touches a subsystem, `Read` the one `docs/*.md` slice
+> named below (or grep [docs/INDEX.md](docs/INDEX.md)). Do NOT paste subsystem detail
+> back here — a pre-commit hook (`pnpm`/`npm run docs-audit`) enforces a token ceiling.
+> Add new doctrine to the relevant slice + `docs/coverage.json`.
 
-The goal is a standalone extension that:
+## Identity
+- Package `vscode-juicer`, publisher `nicholasfane-local` (local placeholder — see
+  [docs/publishing.md](docs/publishing.md)), extension id `nicholasfane-local.vscode-juicer`.
+- Settings namespace `vscodeJuicer.*`; chat settings `vscodeJuicer.chat.*`.
+- Distribution is **GitHub Releases VSIX**, not the marketplace. → [docs/marketplace.md](docs/marketplace.md)
 
-- keeps the original editor-side combo / shake / explosion behavior
-- adds renderer-side effects for Copilot Chat and other webview-backed inputs
-- does not depend on Custom CSS / JS Loader
-- patches the VS Code workbench directly when renderer effects are enabled
+## Stack
+- **Extension host** — `out/src/extension.js`: editor effects on real text docs,
+  commands, sidebar webview, config sync, typing stats. → [docs/architecture.md](docs/architecture.md)
+- **Renderer injector** — `renderer/vscode-juicer-injector.js`: chat/webview effects,
+  injected into the workbench. → [docs/effects.md](docs/effects.md), [docs/live-config.md](docs/live-config.md)
+- **Installer** — `out/src/chat-renderer-installer.js`: patches `workbench.html`
+  (locate, strip, inject, backup/restore). → [docs/renderer-injection.md](docs/renderer-injection.md)
+- **Pure core** — `out/src/chat-config.js`: the only `vscode`/`fs`-free module
+  (presets, strip/inject, merge). All logic lives here to stay testable. → [docs/testing.md](docs/testing.md)
 
-## Current Identity
+## Global rules (enforce on every task)
+- **Workbench injection is single-source & marker-managed** — always strip the old
+  block before reinjecting; keep it reversible via the backup. → [docs/renderer-injection.md](docs/renderer-injection.md)
+- **The renderer is sandboxed — no Node** (`require` is undefined). Renderer↔host
+  transport must be browser-safe (fetch), never `fs`. → [docs/live-config.md](docs/live-config.md)
+- **Change config shape → update installer globals AND renderer polling/apply
+  together** (a test enforces the shape stays in sync). → [docs/live-config.md](docs/live-config.md)
+- **Change package identity → update manifest ids, command ids, settings namespaces,
+  storage keys, and workbench markers together.** → [docs/architecture.md](docs/architecture.md)
+- **Do NOT reintroduce Custom CSS / JS Loader integration.** → [docs/marketplace.md](docs/marketplace.md)
+- **`onPowermodeStart`/`onPowermodeStop` are internal contract names, not branding** —
+  don't rename casually. → [docs/architecture.md](docs/architecture.md)
+- **Prefer editing the repo copy, then package/install from it** — never edit the
+  installed extension folder or `workbench.html` by hand. → [docs/publishing.md](docs/publishing.md)
 
-- Repo: `git@github.com:NickFane/vscode-juicer.git`
-- Package name: `vscode-juicer`
-- Publisher: `nicholasfane-local`
-- Extension id: `nicholasfane-local.vscode-juicer`
-- Visible name: `VSCode Juicer`
-- Settings namespace: `vscodeJuicer.*`
-- Chat settings namespace: `vscodeJuicer.chat.*`
+## Documentation map (load a slice when the task matches)
+Full index with trigger keywords: [docs/INDEX.md](docs/INDEX.md).
 
-## Important Files
+| Topic | Slice | Load when |
+|---|---|---|
+| Two-layer architecture, pure core | [docs/architecture.md](docs/architecture.md) | host vs renderer, `chat-config`, provenance |
+| Workbench patching | [docs/renderer-injection.md](docs/renderer-injection.md) | markers, `stripPatch`/`applyPatch`, backup, CSP |
+| Live config + preset switching | [docs/live-config.md](docs/live-config.md) | `__vscodeJuicerConfigUrl`, `applyLiveConfig`, "needs reload" |
+| Presets | [docs/presets.md](docs/presets.md) | `vscodeJuicer.chat.preset`, `insanity`, `safetyOff` |
+| Effects + backlog | [docs/effects.md](docs/effects.md) | combo, shake, particles, WPM, new juice ideas |
+| Testing | [docs/testing.md](docs/testing.md) | `vitest`, jsdom, adding a test, CI |
+| Publishing / VSIX | [docs/publishing.md](docs/publishing.md) | release, `.vscodeignore`, `vsce` |
+| Updating local copy | [docs/llm-update-guide.md](docs/llm-update-guide.md) | user asks how to install/update |
+| Marketplace (deferred) | [docs/marketplace.md](docs/marketplace.md) | marketplace safety, split architecture |
 
-- `package.json`
-  Extension manifest, commands, views, settings, package identity.
-
-- `out/src/extension.js`
-  Main extension-host entrypoint. Registers commands, status bar items, sidebar webview, config sync, and stats logic.
-
-- `out/src/chat-renderer-installer.js`
-  Workbench patcher. Locates `workbench.html`, strips the managed block, reinjects the renderer script, writes the live config file, and restores from backup when needed.
-
-- `renderer/vscode-juicer-injector.js`
-  Renderer-side script injected into the workbench. Handles particles, combo HUD, WPM, shake, hit counter, and live config polling.
-
-- `README.md`
-  Short operator-facing project notes.
-
-## Runtime Architecture
-
-There are two runtime layers.
-
-1. Extension host
-   Runs normal editor effects for real text documents.
-
-2. Renderer injector
-   Handles Copilot Chat / webview-backed typing that does not flow through `onDidChangeTextDocument` the same way.
-
-The renderer is injected into VS Code workbench HTML by the extension itself.
-
-## Renderer Injection Model
-
-The extension writes a managed block into the workbench HTML.
-
-Managed markers:
-
-- `<!-- !! VSCODE-JUICER-SESSION !! -->`
-- `<!-- !! VSCODE-JUICER-START !! -->`
-- `<!-- !! VSCODE-JUICER-END !! -->`
-
-The installer should always strip the old managed block before reinjecting.
-
-Backup file name:
-
-- `workbench.vscode-juicer.bak`
-
-Relevant workbench path on this machine:
-
-- `/Applications/Visual Studio Code 2.app/Contents/Resources/app/out/vs/code/electron-browser/workbench/workbench.html`
-
-## Live Config Behavior
-
-The renderer supports live updates without reload after the injector itself has been loaded once.
-
-Mechanism:
-
-- extension writes runtime config JSON to the extension global storage area
-- workbench injector exposes config globals
-- renderer polls the JSON file every 500ms
-- renderer applies updated values in-memory and updates CSS custom properties
-
-Important renderer globals:
-
-- `window.__vscodeJuicerConfig`
-- `window.__vscodeJuicerConfigPath`
-- `window.__vscodeJuicerApplyConfig`
-- `window.vscodeJuicer`
-
-Stored renderer config key:
-
-- `localStorage['vscodeJuicerConfig']`
-
-## Presets
-
-Known chat presets:
-
-- `juicy-subtle-v1`
-- `legacy`
-- `insanity`
-
-`insanity` is intentionally extreme and can make the editor borderline unusable.
-
-## Known Constraints
-
-- This repo is JS-first. It was assembled from the installed extension bundle and does not include original TypeScript sources.
-- VS Code updates can overwrite the patched workbench HTML.
-- One reload is still required after changing the injected runtime itself; live config only applies after the current injector version is loaded.
-- Caret anchoring inside some webview surfaces is approximate.
-
-## Local Repo Status
-
-At handoff time:
-
-- branch: `main`
-- local branch is ahead of `origin/main` by 1 commit
-- bootstrap commit exists locally: `f045a82 Bootstrap VSCode Juicer extension`
-
-## GitHub Push Blocker
-
-Push is currently blocked by GitHub identity mismatch.
-
-Observed state:
-
-- `workbook-key` authenticates successfully to GitHub
-- `id_ed25519_github` and `nicholas-fane` also authenticate successfully
-- all tested keys currently identify as GitHub account `nicholas-fane_isuctm`
-- push to `NickFane/vscode-juicer` is denied for that account
-
-Implication:
-
-- do not push until the actual GitHub account for `NickFane` is configured locally or granted access
-
-Useful commands:
-
-- `ssh -T git@github.com`
-- `ssh -T -i /Users/nicholas.fane/.ssh/workbook-key -o IdentitiesOnly=yes git@github.com`
-- `gh auth status`
-
-## Installed Extension Notes
-
-Historical installed extension path used earlier in the session:
-
-- `/Users/nicholas.fane/.vscode/extensions/nicholasfane-local.vscode-power-mode-chat-fork-3.0.2-local.0`
-
-This old extension should not remain the active source of truth.
-
-Preferred active extension after reinstall:
-
-- `nicholasfane-local.vscode-juicer`
-
-## Validation Commands
-
-- `npm run validate:bundle`
-- `git status --short --branch`
-- `rg -n 'powermode|Power Mode' out renderer package.json README.md -g '!**/*.map'`
-
-## Operational Guidance For Future Changes
-
-- Keep workbench injection single-source and marker-managed.
-- Do not reintroduce Custom CSS / JS Loader integration.
-- If changing renderer config shape, update both installer globals and renderer polling/application code.
-- If changing package identity, update manifest ids, command ids, settings namespaces, storage keys, and workbench marker names together.
-- Prefer editing the repo copy, then packaging/installing from this repo, rather than editing the installed extension folder directly.
+## Dev workflow
+- `npm install` (wires the pre-commit hook via `prepare`).
+- `npm test` — `validate:bundle` (syntax) + Vitest. `npm run test:watch` for watch.
+- `npm run docs-audit` — checks the docs system (token ceiling, links, coverage,
+  staleness); also runs via the pre-commit hook.
+- `npm run package` — build the VSIX into `dist/`. → [docs/publishing.md](docs/publishing.md)
