@@ -26,6 +26,8 @@ other webview inputs (delivered by patching the workbench HTML).
   (locate, strip, inject, backup/restore). → [docs/renderer-injection.md](docs/renderer-injection.md)
 - **Pure core** — `out/src/chat-config.js`: the only `vscode`/`fs`-free module
   (presets, strip/inject, merge). All logic lives here to stay testable. → [docs/testing.md](docs/testing.md)
+- **Sidebar** — `out/src/chat-settings-view.js` (webview host) + `out/src/chat-settings-fields.js`
+  (pure field/category descriptors + step-button math). → [docs/sidebar-ui.md](docs/sidebar-ui.md)
 
 ## Global rules (enforce on every task)
 - **Workbench injection is single-source & marker-managed** — always strip the old
@@ -34,6 +36,8 @@ other webview inputs (delivered by patching the workbench HTML).
   transport must be browser-safe (fetch), never `fs`. → [docs/live-config.md](docs/live-config.md)
 - **Change config shape → update installer globals AND renderer polling/apply
   together** (a test enforces the shape stays in sync). → [docs/live-config.md](docs/live-config.md)
+- **New `RUNTIME_KEYS` entry → add a `chat-settings-fields.js` `FIELDS` descriptor**
+  too (a test enforces 1:1 coverage) or it never reaches the sidebar. → [docs/sidebar-ui.md](docs/sidebar-ui.md)
 - **Change package identity → update manifest ids, command ids, settings namespaces,
   storage keys, and workbench markers together.** → [docs/architecture.md](docs/architecture.md)
 - **Do NOT reintroduce Custom CSS / JS Loader integration.** → [docs/marketplace.md](docs/marketplace.md)

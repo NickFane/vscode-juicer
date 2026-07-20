@@ -22,6 +22,9 @@
   `legacy`, `insanity`, `safetyOff`.
 - **[effects.md](effects.md)** — what the juice is + backlog · *load when* adding an
   effect or gamification feature · `combo`, `shake`, `particles`, WPM, heat, backlog.
+- **[sidebar-ui.md](sidebar-ui.md)** — the data-driven Control Deck webview ·
+  *load when* adding/editing a sidebar setting or step-button behavior ·
+  `chat-settings-fields`, `FIELDS`, `CATEGORIES`, `deriveSteps`, stepper.
 
 ## Tooling, ops & context
 
