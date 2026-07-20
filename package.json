@@ -1,0 +1,545 @@
+{
+	"name": "vscode-juicer",
+	"displayName": "VSCode Juicer",
+	"description": "Standalone VSCode Juicer extension with editor effects plus a companion renderer injector for Copilot Chat and other webview-backed inputs.",
+	"version": "3.0.2-local.0",
+	"publisher": "nicholasfane-local",
+	"icon": "images/icon-large.png",
+	"author": {
+		"name": "Nicholas Fane"
+	},
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/NickFane/vscode-juicer/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git@github.com:NickFane/vscode-juicer.git"
+	},
+	"homepage": "https://github.com/NickFane/vscode-juicer#readme",
+	"engines": {
+		"vscode": "^1.22.0"
+	},
+	"categories": [
+		"Themes",
+		"Other"
+	],
+	"activationEvents": [
+		"onStartupFinished"
+	],
+	"main": "./out/src/extension",
+	"scripts": {
+		"validate:bundle": "node --check ./out/src/extension.js && node --check ./renderer/vscode-juicer-injector.js",
+		"package": "vsce package"
+	},
+	"devDependencies": {
+		"vsce": "1.103.1"
+	},
+	"contributes": {
+		"commands": [
+			{
+				"command": "vscodeJuicer.enableJuicer",
+				"title": "Enable VSCode Juicer",
+				"when": "!config.vscodeJuicer.enabled",
+				"enablement": "!config.vscodeJuicer.enabled"
+			},
+			{
+				"command": "vscodeJuicer.disableJuicer",
+				"title": "Disable VSCode Juicer",
+				"when": "config.vscodeJuicer.enabled",
+				"enablement": "config.vscodeJuicer.enabled"
+			},
+			{
+				"command": "vscodeJuicer.chat.enable",
+				"title": "VSCode Juicer: Enable Renderer Effects"
+			},
+			{
+				"command": "vscodeJuicer.chat.disable",
+				"title": "VSCode Juicer: Disable Renderer Effects"
+			},
+			{
+				"command": "vscodeJuicer.chat.openSettings",
+				"title": "VSCode Juicer: Open Chat Renderer Settings"
+			},
+			{
+				"command": "vscodeJuicer.chat.applyJuicySubtlePreset",
+				"title": "VSCode Juicer: Apply Preset (Juicy Subtle v1)"
+			},
+			{
+				"command": "vscodeJuicer.chat.setParticleSize",
+				"title": "VSCode Juicer: Set Particle Size"
+			},
+			{
+				"command": "vscodeJuicer.chat.setParticleDensity",
+				"title": "VSCode Juicer: Set Particle Density"
+			},
+			{
+				"command": "vscodeJuicer.chat.resetStats",
+				"title": "VSCode Juicer: Reset Sidebar Stats"
+			}
+		],
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "vscode-juicer",
+					"title": "VSCode Juicer",
+					"icon": "images/flame.svg"
+				}
+			]
+		},
+		"views": {
+			"vscode-juicer": [
+				{
+					"id": "vscode-juicer-settings",
+					"name": "Juicer Controls",
+					"type": "webview"
+				}
+			]
+		},
+		"configuration": [
+			{
+				"title": "General",
+				"order": 0,
+				"properties": {
+					"vscodeJuicer.enabled": {
+						"order": 0,
+						"default": false,
+						"type": "boolean",
+						"description": "Enable to activate JUICED!!!"
+					},
+					"vscodeJuicer.presets": {
+						"order": 1,
+						"type": "string",
+						"enum": [
+							"particles",
+							"fireworks",
+							"flames",
+							"magic",
+							"clippy",
+							"simple-rift",
+							"exploding-rift"
+						],
+						"default": "particles",
+						"description": "Choose the visual preset used when VSCode Juicer is active"
+					}
+				}
+			},
+			{
+				"title": "Combo",
+				"order": 1,
+				"properties": {
+					"vscodeJuicer.combo.location": {
+						"order": 0,
+						"type": "string",
+						"default": "default",
+						"enum": [
+							"editor",
+							"statusbar",
+							"default",
+							"off"
+						],
+						"enumDescriptions": [
+							"Show the combo in the editor. The true 'VSCode Juicer' experience",
+							"Use the status bar. A more subdued experience.",
+							"Use the default value. May be overiddent by other settings.",
+							"Turn off the combo entirely."
+						],
+						"description": "Control where all the combo information is visible."
+					},
+					"vscodeJuicer.combo.threshold": {
+						"default": 0,
+						"type": "number",
+						"description": "The combo needed to activate JUICED!!! and start shaking and exploding the screen. If the value is 0, VSCode Juicer will always be active."
+					},
+					"vscodeJuicer.combo.timeout": {
+						"default": 10,
+						"type": "number",
+						"description": "The number of seconds before the combo resets. If the value is 0, the timer will never reset."
+					},
+					"vscodeJuicer.combo.counterEnabled": {
+						"type": "string",
+						"default": "default",
+						"enum": [
+							"show",
+							"hide",
+							"default"
+						],
+						"enumDescriptions": [
+							"Show the combo counter",
+							"Hide the combo counter",
+							"Use the default value. May be overridden by other settings."
+						],
+						"description": "Control whether the combo counter is visible."
+					},
+					"vscodeJuicer.combo.counterSize": {
+						"type": "number",
+						"default": 3,
+						"minimum": 0,
+						"description": "Control the size of the Combo Meter text"
+					},
+					"vscodeJuicer.combo.timerEnabled": {
+						"type": "string",
+						"default": "default",
+						"enum": [
+							"show",
+							"hide",
+							"default"
+						],
+						"enumDescriptions": [
+							"Show the combo timer",
+							"Hide the combo timer",
+							"Use the default value. May be overridden by other settings."
+						],
+						"description": "Control whether the combo timer is visible."
+					}
+				}
+			},
+			{
+				"title": "Shake",
+				"order": 2,
+				"properties": {
+					"vscodeJuicer.shake.enabled": {
+						"order": 0,
+						"type": "boolean",
+						"default": true,
+						"description": "Set to false to disable shaking while typing"
+					},
+					"vscodeJuicer.shake.intensity": {
+						"type": "number",
+						"default": 3,
+						"description": "The intensity with which the screen shakes"
+					}
+				}
+			},
+			{
+				"title": "Explosions",
+				"order": 3,
+				"properties": {
+					"vscodeJuicer.explosions.enabled": {
+						"order": 0,
+						"type": "boolean",
+						"default": true,
+						"description": "Set to false to disable explosions while typing"
+					},
+					"vscodeJuicer.explosions.maxExplosions": {
+						"type": "number",
+						"default": 1,
+						"description": "The maximum number of simultaneous explosions"
+					},
+					"vscodeJuicer.explosions.size": {
+						"type": "number",
+						"default": 6,
+						"description": "The size of the explosions. For value X, the height is set to X rem and the width to X ch"
+					},
+					"vscodeJuicer.explosions.frequency": {
+						"type": "number",
+						"default": 2,
+						"description": "The number of key strokes needed to trigger an explosion. 2 means every second keystroke will explode, 1 means every key stroke."
+					},
+					"vscodeJuicer.explosions.offset": {
+						"type": "number",
+						"default": 0.35,
+						"description": "The vertical offset of the explosions. Increasing it will move the explosions up, decreasing it will move them down."
+					},
+					"vscodeJuicer.explosions.customExplosions": {
+						"order": 16,
+						"type": "array",
+						"items": "string",
+						"default": [],
+						"markdownDescription": "This value will go into the 'url()' part of a background image. It should be a base64 encoded gif or **https** URL _without_ quotes."
+					},
+					"vscodeJuicer.explosions.backgroundMode": {
+						"type": "string",
+						"default": "mask",
+						"enum": [
+							"mask",
+							"image"
+						],
+						"enumDescriptions": [
+							"Uses the gifs as a mask to let the background color come through (similar to atom power mode)",
+							"Display the actual gif."
+						],
+						"description": "Affects the css properties used to display the gif."
+					},
+					"vscodeJuicer.explosions.gifMode": {
+						"type": "string",
+						"default": "continue",
+						"enum": [
+							"continue",
+							"restart"
+						],
+						"enumDescriptions": [
+							"Resume playing it from its previous point",
+							"Restart the gif each time it is shown. This is useful when you have multiple visible gifs, but may reduce performance"
+						],
+						"description": "Control the 'playback' mode of the gifs."
+					},
+					"vscodeJuicer.explosions.explosionOrder": {
+						"description": "Determines how the explosions are cycled. 'random' (default) picks from the list randomly. 'sequential' goes through the list in order, and a number will select the explosion at that (zero based)index in the list",
+						"oneOf": [
+							{
+								"type": "string",
+								"enum": [
+									"random",
+									"sequential"
+								]
+							},
+							{
+								"type": "number"
+							}
+						],
+						"default": "random"
+					},
+					"vscodeJuicer.explosions.duration": {
+						"description": "Determines how long an explosion lasts (in milliseconds). Set to 0 for it to last forever.",
+						"type": "number",
+						"default": 1000
+					},
+					"vscodeJuicer.explosions.customCss": {
+						"description": "Set custom CSS that will apply to the explosion element.",
+						"type": "object",
+						"default": {}
+					}
+				}
+			},
+			{
+				"title": "Chat Renderer",
+				"order": 4,
+				"properties": {
+					"vscodeJuicer.chat.enabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable renderer-side chat/webview effects managed by this extension."
+					},
+					"vscodeJuicer.chat.preset": {
+						"type": "string",
+						"default": "juicy-subtle-v1",
+						"enum": [
+							"juicy-subtle-v1",
+							"legacy",
+							"insanity"
+						],
+						"description": "Preset baseline for renderer effects."
+					},
+					"vscodeJuicer.chat.comboDecayMs": {
+						"type": "number",
+						"default": 1500,
+						"description": "Milliseconds of inactivity before combo resets."
+					},
+					"vscodeJuicer.chat.comboShakeThreshold": {
+						"type": "number",
+						"default": 15,
+						"description": "Combo count required before shake triggers."
+					},
+					"vscodeJuicer.chat.particlesPerKeystroke": {
+						"type": "number",
+						"default": 5,
+						"description": "Particles spawned per qualifying key press."
+					},
+					"vscodeJuicer.chat.particleLifetimeMs": {
+						"type": "number",
+						"default": 260,
+						"description": "Particle lifetime in milliseconds."
+					},
+					"vscodeJuicer.chat.particleSizePx": {
+						"type": "number",
+						"default": 4,
+						"description": "Particle size in pixels."
+					},
+					"vscodeJuicer.chat.particleDistanceMin": {
+						"type": "number",
+						"default": 6,
+						"description": "Minimum particle travel distance."
+					},
+					"vscodeJuicer.chat.particleDistanceMax": {
+						"type": "number",
+						"default": 16,
+						"description": "Maximum particle travel distance."
+					},
+					"vscodeJuicer.chat.particleOffsetX": {
+						"type": "number",
+						"default": 5,
+						"description": "Horizontal spawn offset from caret."
+					},
+					"vscodeJuicer.chat.particleOffsetY": {
+						"type": "number",
+						"default": 0,
+						"description": "Vertical spawn offset from caret."
+					},
+					"vscodeJuicer.chat.particleSaturation": {
+						"type": "number",
+						"default": 90,
+						"description": "Used only when text-color-follow is disabled."
+					},
+					"vscodeJuicer.chat.particleLightness": {
+						"type": "number",
+						"default": 60,
+						"description": "Used only when text-color-follow is disabled."
+					},
+					"vscodeJuicer.chat.particleFollowTextColor": {
+						"type": "boolean",
+						"default": true,
+						"description": "Use active editor/chat text color for particles."
+					},
+					"vscodeJuicer.chat.shakeEnabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Enable shake effect."
+					},
+					"vscodeJuicer.chat.shakeDurationMs": {
+						"type": "number",
+						"default": 34,
+						"description": "Single shake burst duration in milliseconds."
+					},
+					"vscodeJuicer.chat.shakeDistancePx": {
+						"type": "number",
+						"default": 1,
+						"description": "Shake distance in pixels."
+					},
+					"vscodeJuicer.chat.shakeLoop": {
+						"type": "boolean",
+						"default": false,
+						"description": "Loop shake animation while combo is active."
+					},
+					"vscodeJuicer.chat.hitCounterEnabled": {
+						"type": "boolean",
+						"default": true,
+						"description": "Show floating hit counter near caret."
+					},
+					"vscodeJuicer.chat.hitCounterLifetimeMs": {
+						"type": "number",
+						"default": 520,
+						"description": "Counter visible lifetime in milliseconds."
+					},
+					"vscodeJuicer.chat.hitCounterOffsetX": {
+						"type": "number",
+						"default": 16,
+						"description": "Horizontal hit counter offset from caret."
+					},
+					"vscodeJuicer.chat.hitCounterOffsetY": {
+						"type": "number",
+						"default": -16,
+						"description": "Vertical hit counter offset from caret."
+					},
+					"vscodeJuicer.chat.countNavigationKeys": {
+						"type": "boolean",
+						"default": true,
+						"description": "Count backspace, enter, tab and delete toward combo."
+					},
+					"vscodeJuicer.chat.anchorMode": {
+						"type": "string",
+						"enum": ["caret-or-pointer", "pointer"],
+						"default": "caret-or-pointer",
+						"description": "Use caret anchor first or always pointer."
+					},
+					"vscodeJuicer.chat.targetSelectors": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"default": [
+							".monaco-editor",
+							".interactive-session",
+							".interactive-input-part",
+							".interactive-input-editor"
+						],
+						"description": "Selectors used to detect tracked typing surfaces."
+					},
+					"vscodeJuicer.chat.ignoreKeys": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						},
+						"default": [
+							"Shift",
+							"Control",
+							"Alt",
+							"Meta"
+						],
+						"description": "Keys ignored by combo tracking."
+					}
+				}
+			},
+			{
+				"title": "Deprecated",
+				"properties": {
+					"vscodeJuicer.comboThreshold": {
+						"default": null,
+						"markdownDeprecationMessage": "Deprecated. Use `vscodeJuicer.combo.threshold` instead."
+					},
+					"vscodeJuicer.comboTimeout": {
+						"default": null,
+						"markdownDeprecationMessage": "Deprecated. Use `vscodeJuicer.combo.timeout` instead."
+					},
+					"vscodeJuicer.enableComboCounter": {
+						"default": null,
+						"markdownDeprecationMessage": "Deprecated. Use `vscodeJuicer.combo.counterEnabled` instead."
+					},
+					"vscodeJuicer.enableComboTimer": {
+						"default": null,
+						"markdownDeprecationMessage": "Deprecated. Use `vscodeJuicer.combo.timerEnabled` instead."
+					},
+					"vscodeJuicer.enableStatusBarComboCounter": {
+						"default": null,
+						"description": "Set to false to disable showing the combo in the statusbar",
+						"markdownDeprecationMessage": "Use `vscodeJuicer.combo.location` and `vscodeJuicer.combo.counterEnabled` instead. This will be removed in a future version."
+					},
+					"vscodeJuicer.enableStatusBarComboTimer": {
+						"default": null,
+						"description": "Set to false to disable showing the timer in the statusbar",
+						"markdownDeprecationMessage": "Use `vscodeJuicer.combo.location` and `vscodeJuicer.combo.timerEnabled` instead. This will be removed in a future version."
+					},
+					"vscodeJuicer.enableShake": {
+						"default": null,
+						"markdownDeprecationMessage": "Deprecated. Use `vscodeJuicer.shake.enabled` instead."
+					},
+					"vscodeJuicer.shakeIntensity": {
+						"default": null,
+						"markdownDeprecationMessage": "Deprecated. Use `vscodeJuicer.shake.intensity` instead."
+					},
+					"vscodeJuicer.explosionSize": {
+						"default": null,
+						"markdownDeprecationMessage": "Deprecated. Use `vscodeJuicer.explosions.size` instead."
+					},
+					"vscodeJuicer.explosionFrequency": {
+						"default": null,
+						"markdownDeprecationMessage": "Deprecated. Use `vscodeJuicer.explosions.frequency` instead."
+					},
+					"vscodeJuicer.explosionOffset": {
+						"default": null,
+						"markdownDeprecationMessage": "Deprecated. Use `vscodeJuicer.explosions.offset` instead."
+					},
+					"vscodeJuicer.customExplosions": {
+						"default": null,
+						"markdownDeprecationMessage": "Deprecated. Use `vscodeJuicer.explosions.customExplosions` instead."
+					},
+					"vscodeJuicer.backgroundMode": {
+						"default": null,
+						"markdownDeprecationMessage": "Deprecated. Use `vscodeJuicer.explosions.backgroundMode` instead."
+					},
+					"vscodeJuicer.gifMode": {
+						"default": null,
+						"markdownDeprecationMessage": "Deprecated. Use `vscodeJuicer.explosions.gifMode` instead."
+					},
+					"vscodeJuicer.explosionOrder": {
+						"default": null,
+						"markdownDeprecationMessage": "Deprecated. Use `vscodeJuicer.explosions.explosionOrder` instead."
+					},
+					"vscodeJuicer.explosionDuration": {
+						"default": null,
+						"markdownDeprecationMessage": "Deprecated. Use `vscodeJuicer.explosions.duration` instead."
+					},
+					"vscodeJuicer.customCss": {
+						"default": null,
+						"markdownDeprecationMessage": "Deprecated. Use `vscodeJuicer.explosions.customCss` instead."
+					}
+				}
+			}
+		]
+	},
+	"__metadata": {
+		"installedTimestamp": 1784514001350,
+		"targetPlatform": "undefined",
+		"size": 9627325
+	}
+}
