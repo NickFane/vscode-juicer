@@ -35,6 +35,16 @@ own-webview HUD, zero workbench patching), publishable and review-clean; and (2)
 **sideloaded opt-in chat-renderer add-on** (the current workbench patch), distributed
 via GitHub Releases only. This gives a marketplace presence without takedown risk.
 
+## In progress: the Composer prototype
+
+A concrete instance of option (1) above is being prototyped: a fully extension-owned
+webview ("Composer") hosting the same juice effects, forwarding composed text into
+real Copilot Chat via the built-in `workbench.action.chat.open` command instead of
+patching anything. → [composer.md](composer.md) for the design and status. This is
+**not merged, not a conclusion** — it lives on its own branch/PR pending hands-on
+testing, since the forwarding command's real-world feel can't be verified without a
+real VS Code window.
+
 ## Tombstone
 
 Do **not** reintroduce Custom CSS / JS Loader integration as a shortcut — it was

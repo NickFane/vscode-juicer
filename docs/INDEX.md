@@ -37,6 +37,10 @@
   updating their local copy · *load when* the user asks how to update/install.
 - **[marketplace.md](marketplace.md)** — why the marketplace is deferred + the future
   split path · *load when* marketplace/publishing-safety comes up.
+- **[composer.md](composer.md)** — non-patching Composer prototype (own webview +
+  `workbench.action.chat.open`) · *load when* touching `effects-core.js`,
+  `juicer-composer-view.js`, or the composer branch/PR · `effects-core`,
+  `triggerKeystroke`, `isPartialQuery`, live-sync.
 - **[METRICS.md](METRICS.md)** — rationale + guardrails for this docs system ·
   *load when* editing the docs system, `docs-audit`, or the token ceiling.
 

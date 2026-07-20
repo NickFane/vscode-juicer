@@ -16,6 +16,7 @@ const configuration_migrator_1 = require("./config/configuration-migrator");
 const chat_renderer_installer_1 = require("./chat-renderer-installer");
 const chat_settings_view_1 = require("./chat-settings-view");
 const chat_config_1 = require("./chat-config");
+const juicer_composer_view_1 = require("./juicer-composer-view");
 // Config values
 let enabled = false;
 let comboThreshold;
@@ -30,6 +31,7 @@ let plugins = [];
 let documentChangeListenerDisposer;
 let typingStatsListenerDisposer;
 let chatSidebarProvider;
+let composerProvider;
 let extensionContext;
 let comboStatusBarItem;
 let wpmStatusBarItem;
@@ -71,6 +73,21 @@ const syncChatRenderer = (context) => (0, chat_renderer_installer_1.syncRenderer
     const message = error && error.message ? error.message : String(error);
     vscode.window.showWarningMessage(`VSCode Juicer renderer sync failed: ${message}. Try running with full file permissions and reload.`);
 });
+// Shared by the sidebar Control Deck and the Composer prototype - both read the
+// same vscodeJuicer.chat.* effect settings via resolveRuntime (chat-config.js),
+// the single source of truth also used by the patched-renderer installer.
+function getChatEffectConfig() {
+    const cfg = vscode.workspace.getConfiguration("vscodeJuicer.chat");
+    const presetName = cfg.get("preset", "juicy-subtle-v1");
+    const runtime = (0, chat_config_1.resolveRuntime)(presetName, (key, fallback) => cfg.get(key, fallback));
+    return Object.assign({ enabled: cfg.get("enabled", true), preset: presetName }, runtime);
+}
+// Keeps both sidebar webviews (Control Deck + Composer prototype) in sync
+// whenever chat effect config changes, wherever it changed from.
+function refreshSidebarViews() {
+    chatSidebarProvider === null || chatSidebarProvider === void 0 ? void 0 : chatSidebarProvider.refresh();
+    composerProvider === null || composerProvider === void 0 ? void 0 : composerProvider.refresh();
+}
 function activate(context) {
     extensionContext = context;
     statsCache = {
@@ -99,7 +116,7 @@ function activate(context) {
         const config = vscode.workspace.getConfiguration("vscodeJuicer.chat");
         await config.update("enabled", value, vscode.ConfigurationTarget.Global);
         await syncChatRenderer(context);
-        chatSidebarProvider === null || chatSidebarProvider === void 0 ? void 0 : chatSidebarProvider.refresh();
+        refreshSidebarViews();
     };
     const setChatNumericSetting = async (key, pickItems, title) => {
         const picked = await vscode.window.showQuickPick(pickItems.map((value) => ({
@@ -111,7 +128,7 @@ function activate(context) {
         }
         await vscode.workspace.getConfiguration("vscodeJuicer.chat").update(key, picked.value, vscode.ConfigurationTarget.Global);
         await syncChatRenderer(context);
-        chatSidebarProvider === null || chatSidebarProvider === void 0 ? void 0 : chatSidebarProvider.refresh();
+        refreshSidebarViews();
     };
     // Register enable/disable commands
     context.subscriptions.push(vscode.commands.registerCommand(enableCommand, () => setEnabled(true)));
@@ -119,7 +136,7 @@ function activate(context) {
     context.subscriptions.push(vscode.commands.registerCommand(chatEnableCommand, () => setChatEnabled(true)));
     context.subscriptions.push(vscode.commands.registerCommand(chatDisableCommand, () => setChatEnabled(false)));
     context.subscriptions.push(vscode.commands.registerCommand(chatOpenSettingsCommand, () => (0, chat_renderer_installer_1.openChatSettings)()));
-    context.subscriptions.push(vscode.commands.registerCommand(chatApplyPresetCommand, () => { lastAppliedChatPreset = "juicy-subtle-v1"; return (0, chat_renderer_installer_1.applyPreset)(context, "juicy-subtle-v1").then(() => syncChatRenderer(context)).then(() => { var _a; return (_a = chatSidebarProvider) === null || _a === void 0 ? void 0 : _a.refresh(); }); }));
+    context.subscriptions.push(vscode.commands.registerCommand(chatApplyPresetCommand, () => { lastAppliedChatPreset = "juicy-subtle-v1"; return (0, chat_renderer_installer_1.applyPreset)(context, "juicy-subtle-v1").then(() => syncChatRenderer(context)).then(() => refreshSidebarViews()); }));
     context.subscriptions.push(vscode.commands.registerCommand("vscodeJuicer.chat.setParticleSize", () => setChatNumericSetting("particleSizePx", [2, 3, 4, 5, 6, 8], "Set VSCode Juicer Particle Size")));
     context.subscriptions.push(vscode.commands.registerCommand("vscodeJuicer.chat.setParticleDensity", () => setChatNumericSetting("particlesPerKeystroke", [2, 3, 4, 5, 6, 8, 10], "Set VSCode Juicer Particle Count Per Keystroke")));
     context.subscriptions.push(vscode.commands.registerCommand("vscodeJuicer.chat.resetStats", async () => {
@@ -140,7 +157,7 @@ function activate(context) {
         await context.globalState.update("vscodeJuicer.chat.totalTyped", 0);
         await context.globalState.update("vscodeJuicer.chat.totalEvents", 0);
         updateStatusBar();
-        chatSidebarProvider === null || chatSidebarProvider === void 0 ? void 0 : chatSidebarProvider.refresh();
+        refreshSidebarViews();
     }));
     comboStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 110);
     comboStatusBarItem.name = "VSCode Juicer Combo";
@@ -153,14 +170,8 @@ function activate(context) {
     // Register sidebar webview provider with richer controls + live stats
     chatSidebarProvider = new chat_settings_view_1(context, {
         getState: () => {
-            const cfg = vscode.workspace.getConfiguration("vscodeJuicer.chat");
-            const presetName = cfg.get("preset", "juicy-subtle-v1");
-            // resolveRuntime (chat-config.js) is the single source of truth for the
-            // full settings shape - every RUNTIME_KEYS entry is exposed automatically,
-            // so a new setting needs no edit here to reach the sidebar.
-            const runtime = (0, chat_config_1.resolveRuntime)(presetName, (key, fallback) => cfg.get(key, fallback));
             return {
-                settings: Object.assign({ enabled: cfg.get("enabled", true), preset: presetName }, runtime),
+                settings: getChatEffectConfig(),
                 stats: {
                     combo: statsCombo,
                     wpm: lastWpm,
@@ -182,6 +193,7 @@ function activate(context) {
             lastAppliedChatPreset = nextPreset;
             await (0, chat_renderer_installer_1.applyPreset)(context, nextPreset);
             await syncChatRenderer(context);
+            composerProvider === null || composerProvider === void 0 ? void 0 : composerProvider.refresh();
         },
         openSettings: async () => {
             await (0, chat_renderer_installer_1.openChatSettings)();
@@ -191,6 +203,20 @@ function activate(context) {
         },
     });
     context.subscriptions.push(vscode.window.registerWebviewViewProvider("vscode-juicer-settings", chatSidebarProvider));
+    // Composer prototype: a fully extension-owned webview (zero workbench patching)
+    // that hosts the same juice effects and forwards composed text into the real
+    // Copilot Chat via the built-in workbench.action.chat.open command. See
+    // docs/composer.md - this is exploratory and does not replace the renderer.
+    composerProvider = new juicer_composer_view_1(context, {
+        getState: getChatEffectConfig,
+        submitToChat: async (text, isPartialQuery) => {
+            await vscode.commands.executeCommand("workbench.action.chat.open", {
+                query: text,
+                isPartialQuery: !!isPartialQuery,
+            });
+        },
+    });
+    context.subscriptions.push(vscode.window.registerWebviewViewProvider("vscode-juicer-composer", composerProvider));
     // Register typing stats listener (always on, independent of editor power mode)
     typingStatsListenerDisposer = vscode.workspace.onDidChangeTextDocument(onDidTrackTypingStatsDocument);
     // Subscribe to configuration changes
@@ -213,7 +239,7 @@ function activate(context) {
             }
         }
         await syncChatRenderer(context);
-        chatSidebarProvider === null || chatSidebarProvider === void 0 ? void 0 : chatSidebarProvider.refresh();
+        refreshSidebarViews();
     }));
     // Initialize from the current configuration
     onDidChangeConfiguration();
