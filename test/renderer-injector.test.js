@@ -71,3 +71,83 @@ describe("live-config transport (B1 — sandbox-safe)", () => {
     expect(injectorSource).not.toContain("__vscodeJuicerConfigPath");
   });
 });
+
+describe("hit counter combo growth and float", () => {
+  // jsdom has no real layout engine: getBoundingClientRect/offsetWidth always report 0.
+  // These tests exercise the deterministic fallback paths and the class/CSS-variable
+  // wiring; the actual adaptive-width overlap fix, visual growth, and float smoothness
+  // can only be confirmed in a real VS Code window (see docs/testing.md / juicer-dev skill).
+
+  function dispatchTypingKeydown(target, key = "a") {
+    target.dispatchEvent(new window.KeyboardEvent("keydown", { key, bubbles: true }));
+  }
+
+  function trackedInput() {
+    const el = document.createElement("div");
+    el.className = "interactive-input-part";
+    document.body.appendChild(el);
+    return el;
+  }
+
+  it("shows the hit counter on a qualifying keydown", () => {
+    const input = trackedInput();
+    dispatchTypingKeydown(input);
+    const counter = document.getElementById("pm-hit-counter");
+    expect(counter).not.toBeNull();
+    expect(counter.classList.contains("pm-hit-counter-visible")).toBe(true);
+  });
+
+  it("increases --pm-hit-growth as combo climbs, then plateaus at the cap", () => {
+    const input = trackedInput();
+    const counter = document.getElementById("pm-hit-counter");
+
+    dispatchTypingKeydown(input);
+    const growthAtOne = parseFloat(counter.style.getPropertyValue("--pm-hit-growth"));
+
+    for (let i = 0; i < 20; i++) {
+      dispatchTypingKeydown(input);
+    }
+    const growthAtTwentyOne = parseFloat(counter.style.getPropertyValue("--pm-hit-growth"));
+    expect(growthAtTwentyOne).toBeGreaterThan(growthAtOne);
+
+    // combo is reset by the hide timer in real usage, but within a single burst (no
+    // timers fired) combo keeps climbing; dispatch well past the growth cap (60).
+    for (let i = 0; i < 60; i++) {
+      dispatchTypingKeydown(input);
+    }
+    const growthPastCap = parseFloat(counter.style.getPropertyValue("--pm-hit-growth"));
+    dispatchTypingKeydown(input);
+    const growthOneMore = parseFloat(counter.style.getPropertyValue("--pm-hit-growth"));
+    expect(growthOneMore).toBe(growthPastCap);
+  });
+
+  it("toggles the float class and distance variable via live config", () => {
+    const input = trackedInput();
+    const counter = document.getElementById("pm-hit-counter");
+
+    window.__vscodeJuicerApplyConfig({
+      hitCounterFloatEnabled: true,
+      hitCounterFloatDistancePx: 77
+    });
+    dispatchTypingKeydown(input);
+    expect(counter.classList.contains("pm-hit-float")).toBe(true);
+    expect(counter.style.getPropertyValue("--pm-hit-float-distance")).toBe("77px");
+
+    window.__vscodeJuicerApplyConfig({ hitCounterFloatEnabled: false });
+    dispatchTypingKeydown(input);
+    expect(counter.classList.contains("pm-hit-float")).toBe(false);
+  });
+
+  it("positions the speed multiplier using the jsdom fallback half-width (overlap fix)", () => {
+    window.__vscodeJuicerApplyConfig({ safetyOff: true }); // bypass the WPM>=50 gate
+    const input = trackedInput();
+    dispatchTypingKeydown(input);
+
+    const multiplier = document.getElementById("pm-speed-multiplier");
+    expect(multiplier).not.toBeNull();
+    // hitCounterOffsetX default (16) + fallback half-width (60) + gap (10) = 86.
+    // Anchor x/y come from lastPointer (window center) since jsdom rects are all zero.
+    const expectedLeft = window.innerWidth / 2 + 16 + 60 + 10;
+    expect(multiplier.style.left).toBe(`${expectedLeft}px`);
+  });
+});

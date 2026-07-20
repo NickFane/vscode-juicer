@@ -40,6 +40,12 @@ describe("preset shape", () => {
     expect(PRESETS["juicy-subtle-v1"].safetyOff).toBeUndefined();
     expect(PRESETS.legacy.safetyOff).toBeUndefined();
   });
+
+  it("hitCounterFloatEnabled defaults to false in every preset", () => {
+    expect(PRESETS["juicy-subtle-v1"].hitCounterFloatEnabled).toBe(false);
+    expect(PRESETS.legacy.hitCounterFloatEnabled).toBe(false);
+    expect(PRESETS.insanity.hitCounterFloatEnabled).toBe(false);
+  });
 });
 
 describe("resolveRuntime", () => {
@@ -63,6 +69,14 @@ describe("resolveRuntime", () => {
   it("resolves safetyOff from the preset when unset, defaulting to false", () => {
     expect(resolveRuntime("insanity", noOverrides).safetyOff).toBe(true);
     expect(resolveRuntime("juicy-subtle-v1", noOverrides).safetyOff).toBe(false);
+  });
+
+  it("lets an explicit hitCounterFloatDistancePx override the preset default", () => {
+    const store = { hitCounterFloatDistancePx: 77 };
+    const get = (key, fallback) => (key in store ? store[key] : fallback);
+    const runtime = resolveRuntime("juicy-subtle-v1", get);
+    expect(runtime.hitCounterFloatDistancePx).toBe(77);
+    expect(runtime.hitCounterFloatEnabled).toBe(PRESETS["juicy-subtle-v1"].hitCounterFloatEnabled);
   });
 });
 
