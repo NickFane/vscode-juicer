@@ -2,7 +2,7 @@
 	"name": "vscode-juicer",
 	"displayName": "VSCode Juicer",
 	"description": "Standalone VSCode Juicer extension with editor effects plus a companion renderer injector for Copilot Chat and other webview-backed inputs.",
-	"version": "3.0.2-local.0",
+	"version": "3.1.0",
 	"publisher": "nicholasfane-local",
 	"icon": "images/icon-large.png",
 	"author": {
@@ -18,10 +18,9 @@
 	},
 	"homepage": "https://github.com/NickFane/vscode-juicer#readme",
 	"engines": {
-		"vscode": "^1.22.0"
+		"vscode": "^1.85.0"
 	},
 	"categories": [
-		"Themes",
 		"Other"
 	],
 	"activationEvents": [
@@ -30,10 +29,18 @@
 	"main": "./out/src/extension",
 	"scripts": {
 		"validate:bundle": "node --check ./out/src/extension.js && node --check ./renderer/vscode-juicer-injector.js",
-		"package": "vsce package"
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"docs-audit": "node --experimental-strip-types scripts/docs-audit.ts",
+		"pretest": "npm run validate:bundle",
+		"package": "vsce package -o dist/",
+		"prepare": "git config core.hooksPath .githooks || true"
 	},
 	"devDependencies": {
-		"vsce": "1.103.1"
+		"@types/vscode": "^1.85.0",
+		"@vscode/vsce": "^3.2.1",
+		"jsdom": "^25.0.1",
+		"vitest": "^2.1.8"
 	},
 	"contributes": {
 		"commands": [
@@ -536,10 +543,5 @@
 				}
 			}
 		]
-	},
-	"__metadata": {
-		"installedTimestamp": 1784514001350,
-		"targetPlatform": "undefined",
-		"size": 9627325
 	}
 }
