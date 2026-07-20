@@ -37,6 +37,8 @@ const RUNTIME_KEYS = [
   "hitCounterLifetimeMs",
   "hitCounterOffsetX",
   "hitCounterOffsetY",
+  "hitCounterFloatEnabled",
+  "hitCounterFloatDistancePx",
   "countNavigationKeys",
   "anchorMode",
   "targetSelectors",
@@ -65,6 +67,8 @@ const PRESETS = {
     hitCounterLifetimeMs: 520,
     hitCounterOffsetX: 16,
     hitCounterOffsetY: -16,
+    hitCounterFloatEnabled: false,
+    hitCounterFloatDistancePx: 40,
     countNavigationKeys: true,
     anchorMode: "caret-or-pointer",
     targetSelectors: [
@@ -96,6 +100,8 @@ const PRESETS = {
     hitCounterLifetimeMs: 700,
     hitCounterOffsetX: 10,
     hitCounterOffsetY: -18,
+    hitCounterFloatEnabled: false,
+    hitCounterFloatDistancePx: 40,
     countNavigationKeys: true,
     anchorMode: "caret-or-pointer",
     targetSelectors: [
@@ -128,6 +134,8 @@ const PRESETS = {
     hitCounterLifetimeMs: 4000,
     hitCounterOffsetX: 40,
     hitCounterOffsetY: -40,
+    hitCounterFloatEnabled: false,
+    hitCounterFloatDistancePx: 40,
     countNavigationKeys: true,
     anchorMode: "caret-or-pointer",
     targetSelectors: [

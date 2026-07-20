@@ -428,6 +428,16 @@
 						"default": -16,
 						"description": "Vertical hit counter offset from caret."
 					},
+					"vscodeJuicer.chat.hitCounterFloatEnabled": {
+						"type": "boolean",
+						"default": false,
+						"description": "Make the hit counter drift up and to the left as it fades, like an RPG damage number. Off by default."
+					},
+					"vscodeJuicer.chat.hitCounterFloatDistancePx": {
+						"type": "number",
+						"default": 40,
+						"description": "Distance in pixels the hit counter drifts when float mode is enabled."
+					},
 					"vscodeJuicer.chat.countNavigationKeys": {
 						"type": "boolean",
 						"default": true,

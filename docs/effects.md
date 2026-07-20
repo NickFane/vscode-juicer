@@ -13,9 +13,15 @@
 - **shake** — scaled screen shake via CSS custom properties + keyframes.
 - **particles** — `spawnParticles` bursts per qualifying keystroke, anchored to the
   caret or pointer (`anchorMode`); insanity adds emoji/flash variants.
-- **hit counter** — floating "+N" near the caret.
+- **hit counter** — floating "+N" near the caret. Text grows with combo (via
+  `getHitGrowth`, capped at combo 60, driving `--pm-hit-growth`) for extra juice at
+  high combos. Opt-in `hitCounterFloatEnabled` (off by default) makes it tween up
+  and to the left as it fades — an RPG-style floating damage number — instead of
+  popping in place.
 - **WPM / speed multiplier HUD** — `recordTypedCharsForWpm` + a live speed
   multiplier HUD (a "heat"-style ramp as you keep typing) and a bottom-right HUD.
+  Positioned relative to the hit counter's actual rendered width so the two never
+  overlap regardless of text length.
 
 ## Editor effects — extension host
 

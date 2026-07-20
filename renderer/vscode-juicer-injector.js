@@ -35,6 +35,8 @@
     hitCounterLifetimeMs: 520,
     hitCounterOffsetX: 16,
     hitCounterOffsetY: -16,
+    hitCounterFloatEnabled: false,
+    hitCounterFloatDistancePx: 40,
     countNavigationKeys: true,
     anchorMode: 'caret-or-pointer',
     targetSelectors: [
@@ -81,6 +83,7 @@
       root.style.setProperty('--pm-shake-distance', `${config.shakeDistancePx}px`);
       root.style.setProperty('--pm-particle-lifetime', `${config.particleLifetimeMs}ms`);
       root.style.setProperty('--pm-shake-loop', config.shakeLoop ? 'infinite' : '1');
+      root.style.setProperty('--pm-hit-lifetime', `${config.hitCounterLifetimeMs}ms`);
     }
   }
 
@@ -120,6 +123,17 @@
   let speedMultiplierHideTimer = null;
   let hudElement = null;
   const KEYSTROKE_WINDOW_MS = 5000;
+  // Small clear gap between the hit counter's right edge and the speed multiplier.
+  const PM_MULTIPLIER_GAP_PX = 10;
+  // offsetWidth is always 0 in jsdom (no real layout); real browsers never hit this branch.
+  const PM_MULTIPLIER_FALLBACK_HALF_WIDTH_PX = 60;
+  // Combo count at which hit-counter growth stops increasing.
+  const PM_HIT_GROWTH_COMBO_CAP = 60;
+  const PM_HIT_GROWTH_PER_COMBO = 0.015;
+
+  function getHitGrowth(comboValue) {
+    return 1 + Math.min(comboValue, PM_HIT_GROWTH_COMBO_CAP) * PM_HIT_GROWTH_PER_COMBO;
+  }
 
   function updatePointer(event) {
     lastPointer = { x: event.clientX, y: event.clientY };
@@ -365,6 +379,11 @@
     } else {
       counter.classList.add('pm-hit-tier-1');
     }
+    counter.style.setProperty('--pm-hit-growth', getHitGrowth(combo).toFixed(3));
+    counter.classList.toggle('pm-hit-float', !!config.hitCounterFloatEnabled);
+    if (config.hitCounterFloatEnabled) {
+      counter.style.setProperty('--pm-hit-float-distance', `${config.hitCounterFloatDistancePx}px`);
+    }
     counter.style.left = `${x + config.hitCounterOffsetX}px`;
     counter.style.top = `${y + config.hitCounterOffsetY}px`;
     counter.classList.remove('pm-hit-counter-visible');
@@ -427,8 +446,16 @@
 
     const multiplier = getSpeedMultiplier();
     element.textContent = `${multiplier.toFixed(1)}x`;
-    element.style.left = `${x + 20}px`;
-    element.style.top = `${y - 20}px`;
+    // Anchor to the right of the hit counter's actual rendered width (untransformed
+    // offsetWidth, unaffected by its pop-scale animation) so the two never overlap,
+    // regardless of text length ("5 HIT" vs "125 HIT" vs a meme label). offsetWidth is
+    // always 0 in jsdom (no real layout there), hence the fallback half-width.
+    const counterHalfWidth =
+      hitCounterElement && hitCounterElement.offsetWidth > 0
+        ? hitCounterElement.offsetWidth / 2
+        : PM_MULTIPLIER_FALLBACK_HALF_WIDTH_PX;
+    element.style.left = `${x + config.hitCounterOffsetX + counterHalfWidth + PM_MULTIPLIER_GAP_PX}px`;
+    element.style.top = `${y + config.hitCounterOffsetY - 4}px`;
     element.classList.remove('pm-speed-visible');
     void element.offsetWidth;
     element.classList.add('pm-speed-visible');
@@ -624,6 +651,7 @@
       --pm-combo-intensity: 0;
       --pm-particle-lifetime: ${config.particleLifetimeMs}ms;
       --pm-shake-loop: ${config.shakeLoop ? 'infinite' : '1'};
+      --pm-hit-lifetime: ${config.hitCounterLifetimeMs}ms;
     }
 
     #pm-live-hud {
@@ -699,7 +727,7 @@
       z-index: 100000;
       pointer-events: none;
       opacity: 0;
-      transform: translate(-50%, -100%) scale(0.72);
+      transform: translate(-50%, -100%) scale(calc(0.72 * var(--pm-hit-growth, 1)));
       padding: 0;
       font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
       font-style: italic;
@@ -719,6 +747,13 @@
     #pm-hit-counter.pm-hit-counter-visible {
       opacity: 1;
       animation: pm-hit-pop 180ms cubic-bezier(0.17, 0.89, 0.32, 1.28) forwards;
+    }
+
+    #pm-hit-counter.pm-hit-counter-visible.pm-hit-float {
+      animation-name: pm-hit-pop-float;
+      animation-duration: var(--pm-hit-lifetime, 520ms);
+      animation-timing-function: cubic-bezier(0.17, 0.89, 0.32, 1.28);
+      animation-fill-mode: forwards;
     }
 
     #pm-hit-counter.pm-hit-tier-2 {
@@ -779,13 +814,37 @@
 
     @keyframes pm-hit-pop {
       0% {
-        transform: translate(-50%, -100%) scale(0.72);
+        transform: translate(-50%, -100%) scale(calc(0.72 * var(--pm-hit-growth, 1)));
       }
       55% {
-        transform: translate(-50%, -100%) scale(1.16);
+        transform: translate(-50%, -100%) scale(calc(1.16 * var(--pm-hit-growth, 1)));
       }
       100% {
-        transform: translate(-50%, -100%) scale(1);
+        transform: translate(-50%, -100%) scale(calc(1 * var(--pm-hit-growth, 1)));
+      }
+    }
+
+    @keyframes pm-hit-pop-float {
+      0% {
+        transform: translate(-50%, -100%) scale(calc(0.72 * var(--pm-hit-growth, 1)));
+        opacity: 0;
+      }
+      35% {
+        transform: translate(-50%, -100%) scale(calc(1.16 * var(--pm-hit-growth, 1)));
+        opacity: 1;
+      }
+      55% {
+        transform: translate(-50%, -100%) scale(calc(1 * var(--pm-hit-growth, 1)));
+        opacity: 1;
+      }
+      100% {
+        transform:
+          translate(
+            calc(-50% - var(--pm-hit-float-distance, 40px)),
+            calc(-100% - var(--pm-hit-float-distance, 40px))
+          )
+          scale(calc(1 * var(--pm-hit-growth, 1)));
+        opacity: 0;
       }
     }
 

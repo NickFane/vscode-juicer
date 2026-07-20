@@ -18,7 +18,7 @@ exploder, not the chat renderer.
 
 Setting `vscodeJuicer.chat.preset` — enum `juicy-subtle-v1 | legacy | insanity`.
 Defined in `PRESETS` in `chat-config.js` (and mirrored as `DEFAULT_CONFIG` for the
-baseline in the injector). Each is a flat object of ~24 runtime fields.
+baseline in the injector). Each is a flat object of ~26 runtime fields.
 
 - `juicy-subtle-v1` — tuned, restrained baseline (the default).
 - `legacy` — bigger particles, looping shake, hit counter off.
