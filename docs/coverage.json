@@ -1,0 +1,23 @@
+{
+  "_comment": "Faithfulness/recall guard. Each entry maps a unit of doctrine to the slice it lives in, plus a distinctive `sentinel` substring that MUST still appear there. scripts/docs-audit.ts fails if any sentinel is missing, so doctrine can't be silently dropped or moved when slices are refactored.",
+  "topics": [
+    { "topic": "two-layer runtime split", "dest": "docs/architecture.md", "sentinel": "extension host and renderer injector" },
+    { "topic": "internal Powermode naming is not branding", "dest": "docs/architecture.md", "sentinel": "onPowermodeStart" },
+    { "topic": "pure dependency-free core", "dest": "docs/architecture.md", "sentinel": "only** dependency-free module" },
+    { "topic": "marker-managed injection", "dest": "docs/renderer-injection.md", "sentinel": "VSCODE-JUICER-START" },
+    { "topic": "strip before reinject, idempotent", "dest": "docs/renderer-injection.md", "sentinel": "strips the old managed block before reinjecting" },
+    { "topic": "backup + reversibility", "dest": "docs/renderer-injection.md", "sentinel": "workbench.vscode-juicer.bak" },
+    { "topic": "CSP meta strip causes corrupt banner", "dest": "docs/renderer-injection.md", "sentinel": "Content-Security-Policy" },
+    { "topic": "renderer has no Node fs", "dest": "docs/live-config.md", "sentinel": "no Node `require('fs')`" },
+    { "topic": "sandbox-safe fetch transport", "dest": "docs/live-config.md", "sentinel": "__vscodeJuicerConfigUrl" },
+    { "topic": "preset switch re-apply fix", "dest": "docs/live-config.md", "sentinel": "re-applies the preset" },
+    { "topic": "two independent preset systems", "dest": "docs/presets.md", "sentinel": "editor visual presets" },
+    { "topic": "chat preset list", "dest": "docs/presets.md", "sentinel": "juicy-subtle-v1" },
+    { "topic": "safetyOff is opt-in", "dest": "docs/presets.md", "sentinel": "never force-write `safetyOff`" },
+    { "topic": "effects inventory + backlog", "dest": "docs/effects.md", "sentinel": "Heat/temperature meter" },
+    { "topic": "pure-logic testing seams", "dest": "docs/testing.md", "sentinel": "dependency-free `out/src/chat-config.js`" },
+    { "topic": "VSIX via GitHub Releases", "dest": "docs/publishing.md", "sentinel": "GitHub Release" },
+    { "topic": "local install/update flow", "dest": "docs/llm-update-guide.md", "sentinel": "--install-extension" },
+    { "topic": "marketplace deferred + split path", "dest": "docs/marketplace.md", "sentinel": "cannot be made marketplace-safe" }
+  ]
+}

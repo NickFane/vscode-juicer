@@ -1,0 +1,28 @@
+# Source-of-truth / dev-only files that must NOT ship inside the VSIX.
+# The runtime is out/** + renderer/** + the icon/flame assets + README + LICENSE.
+
+# LLM context & docs system
+CLAUDE.md
+docs/**
+.claude/**
+
+# Tooling, CI, hooks, tests
+.github/**
+.githooks/**
+scripts/**
+test/**
+vitest.config.*
+tsconfig*.json
+
+# Repo meta
+.gitignore
+.vscodeignore
+.editorconfig
+package-lock.json
+
+# Build/coverage output & sourcemaps
+dist/**
+coverage/**
+**/*.map
+**/*.ts
+!renderer/**/*.js

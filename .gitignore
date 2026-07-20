@@ -2,3 +2,5 @@ node_modules/
 *.vsix
 .vsixmanifest
 .DS_Store
+dist/
+coverage/

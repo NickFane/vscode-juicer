@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./package-lock.json)",
+      "Read(**/node_modules/**)",
+      "Read(./dist/**)",
+      "Read(./coverage/**)",
+      "Read(**/*.map)",
+      "Read(./images/**)",
+      "Read(./out/src/config/particles.js)",
+      "Read(./out/src/config/fireworks.js)",
+      "Read(./out/src/config/flames.js)",
+      "Read(./out/src/config/magic.js)",
+      "Read(./out/src/config/clippy.js)",
+      "Read(./out/src/config/rift.js)"
+    ]
+  }
+}
